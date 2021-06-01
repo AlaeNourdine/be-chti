@@ -1,0 +1,748 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000                 PRESERVE8
+    2 00000000                 THUMB
+    3 00000000                 EXPORT           DFT_ModuleAuCarre
+    4 00000000                 EXPORT           TabCos
+    5 00000000                 EXPORT           TabSin
+    6 00000000                 IMPORT           LeSignal
+    7 00000000         
+    8 00000000         ; ====================== zone de réservation de données,
+                         ======================================
+    9 00000000         ;Section RAM (read only) :
+   10 00000000                 area             moncode,code,readwrite
+   11 00000000         
+   12 00000000         
+   13 00000000         
+   14 00000000         
+   15 00000000         ; ======================================================
+                       =========================================
+   16 00000000         
+   17 00000000         ;DFT_ModuleAuCarre PROC; short int * Signal64ech, char k
+                       
+   18 00000000         ; push{r4,r5,r6,r7} ; on sauvegarde l'état des registres
+                        dans la pile
+   19 00000000         ; mov r2, #0 ;r2 indice n initialement à 0
+   20 00000000         ; mov r7, #0 ; r7 somme accumulé des parties réelles ini
+                       tialement à 0
+   21 00000000         ; ldr r5,=TabCos ; tableau des valeur de cos (défini plu
+                       s bas)
+   22 00000000         ; 
+   23 00000000         ;Loop
+   24 00000000         ;  
+   25 00000000         ; 
+   26 00000000         ; ;Operation modulo
+   27 00000000         ; mul r6,r1,r2 ;r6 = k*n 
+   28 00000000         ; and r6, #63 ;r6 = k*n AND 63 = k*n % Longueur du Table
+                       au
+   29 00000000         ; ldrsh r3, [r5,r6,lsl #1] ; r3 = cos à l'indice k*n = r
+                       6, format = 1.15
+   30 00000000         ; asr r3, #2 ; on décale en 1.13
+   31 00000000         ; ldrsh r4, [r0,r2,lsl #1] ; r4 = signal à l'indice n = 
+                       r2 1.12
+   32 00000000         ; asr r4, #2 ;on décale en 1.10 
+   33 00000000         ; mla r7, r3, r4, r7 ; mla : mul & add, format = 8.23
+   34 00000000         ; add r2, #1 ; on incremente l'indice n
+   35 00000000         ; mov r3, #64 ;r3 longueur du tableau
+   36 00000000         ; cmp r3, r2 ;r2 index (rajout a la fin)
+   37 00000000         ; bne Loop 
+   38 00000000         
+   39 00000000         ; asr r7, #20 ; on decale en 8.3
+   40 00000000         ; mul r0,r7,r7 ; opération carré, format = 16.6
+   41 00000000         ; pop{r4,r5,r6,r7} ;on rétablit l'état des registre
+   42 00000000         
+   43 00000000         ; bx lr
+   44 00000000         ; endp
+   45 00000000         
+   46 00000000         ;Version 2
+   47 00000000         
+   48 00000000         DFT_ModuleAuCarre
+                               PROC                         ; short int * Signa
+                                                            l64ech, char k
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+   49 00000000 E92D 01F0       push{r4,r5,r6,r7,r8}         ; on sauvegarde l'é
+                                                            tat des registres d
+                                                            ans la pile
+   50 00000004 F04F 0200       mov              r2, #0      ;r2 indice n initia
+                                                            lement à 0
+   51 00000008 F04F 0700       mov              r7, #0      ; r7 somme accumulé
+                                                             des parties réelle
+                                                            s initialement à 0
+   52 0000000C F04F 0800       mov              r8, #0      ; r7 somme accumulé
+                                                             des parties réelle
+                                                            s initialement à 0
+   53 00000010         
+   54 00000010         
+   55 00000010         
+   56 00000010         Loop
+   57 00000010         
+   58 00000010         
+   59 00000010         ;Operation modulo
+   60 00000010 FB01 F602       mul              r6,r1,r2    ;r6 = k*n 
+   61 00000014 F006 063F       and              r6, #63     ;r6 = k*n AND 63 = 
+                                                            k*n % Longueur du T
+                                                            ableau
+   62 00000018         
+   63 00000018         ;Calcul de la partie réelle
+   64 00000018 4D14            ldr              r5,=TabCos  ; tableau des valeu
+                                                            r de cos (défini pl
+                                                            us bas)
+   65 0000001A F935 3016       ldrsh            r3, [r5,r6,lsl #1] ; r3 = cos à
+                                                             l'indice k*n = r6,
+                                                             format = 1.15
+   66 0000001E EA4F 03A3       asr              r3, #2      ; on décale en 1.13
+                                                            
+   67 00000022 F930 4012       ldrsh            r4, [r0,r2,lsl #1] ; r4 = signa
+                                                            l à l'indice n = r2
+                                                             1.12
+   68 00000026 EA4F 04A4       asr              r4, #2      ;on décale en 1.10 
+                                                            
+   69 0000002A         
+   70 0000002A FB03 7704       mla              r7, r3, r4, r7 ; mla : mul & ad
+                                                            d, format = 8.23
+   71 0000002E         
+   72 0000002E         ;Calcul de la partie imaginaire
+   73 0000002E 4D10            ldr              r5,=TabSin  ; tableau des valeu
+                                                            r de sin (défini pl
+                                                            us bas)
+   74 00000030 F935 3016       ldrsh            r3, [r5,r6,lsl #1] ; r3 = sin à
+                                                             l'indice k*n = r6,
+                                                             format = 1.15
+   75 00000034 EA4F 03A3       asr              r3, #2      ; on décale en 1.13
+                                                            
+   76 00000038 F930 4012       ldrsh            r4, [r0,r2,lsl #1] ; r4 = signa
+                                                            l à l'indice n = r2
+                                                             1.12
+   77 0000003C EA4F 04A4       asr              r4, #2      ;on décale en 1.10 
+                                                            
+   78 00000040 FB03 8804       mla              r8, r3, r4, r8 ; mla : mul & ad
+                                                            d, format = 8.23
+   79 00000044         
+   80 00000044 F102 0201       add              r2, #1      ; on incremente l'i
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+                                                            ndice n
+   81 00000048 F04F 0340       mov              r3, #64     ;r3 longueur du tab
+                                                            leau
+   82 0000004C 4293            cmp              r3, r2      ;r2 index (rajout a
+                                                             la fin)
+   83 0000004E         
+   84 0000004E D1DF            bne              Loop
+   85 00000050         
+   86 00000050 EA4F 5727       asr              r7, #20     ; on decale en 8.3
+   87 00000054 EA4F 5828       asr              r8, #20     ; on decale en 8.3
+   88 00000058 FB07 F707       mul              r7,r7,r7    ; opération carré, 
+                                                            format = 16.6
+   89 0000005C FB08 F808       mul              r8,r8,r8    ; opération carré, 
+                                                            format = 16.6
+   90 00000060 EB07 0008       add              r0,r7,r8
+   91 00000064 E8BD 01F0       pop{r4,r5,r6,r7,r8}          ;on rétablit l'état
+                                                             des registre
+   92 00000068         
+   93 00000068 4770            bx               lr
+   94 0000006A                 endp
+   95 0000006A         
+   96 0000006A         ;Cos uniquement 
+   97 0000006A         
+   98 0000006A         ;DFT_ModuleAuCarre PROC; short int * Signal64ech, char k
+                       
+   99 0000006A         
+  100 0000006A         ; sub sp, #16
+  101 0000006A         ; mov r2, #0 ;r2 indice n
+  102 0000006A         ; str r2, [sp, #0] ; sp[0] = indice n
+  103 0000006A         ; mov r3, #0 
+  104 0000006A         ; str r3, [sp, #4] ; sp[2] = somme des partie réelle
+  105 0000006A         ; ldr r3,=TabCos
+  106 0000006A         ; str r3, [sp, #8]
+  107 0000006A         ; 
+  108 0000006A         ;Loop
+  109 0000006A         ;   
+  110 0000006A         ; ;Operation modulo
+  111 0000006A         ; ldr r2,[sp, #0] ; chargement indice n
+  112 0000006A         ; mul r2,r1,r2 ;r2 = k*n 
+  113 0000006A         ; and r2, #63 ;r2 = k*n AND LongueurTableau = k*n % Long
+                       ueurTableau
+  114 0000006A         ; ldr r3, [sp, #8] ; on charge tabCos
+  115 0000006A         ; ldrsh r3, [r3,r2,lsl #1] ; r3 = cos à l'indice r2 ; r3
+                        format 1.15
+  116 0000006A         ; asr r3, #2 ;1.13
+  117 0000006A         ; str r3, [sp, #12] ; sp[3] = cos à l'indice kn decale d
+                       e 2 vers la droite
+  118 0000006A         
+  119 0000006A         ; ldr r2,[sp, #0] ; chargement indice n
+  120 0000006A         ; ldrsh r3, [r0,r2,lsl #1] ; r3 = signal à l'indice r2 1
+                       .12
+  121 0000006A         ; 
+  122 0000006A         ; asr r3, #2 ;1.10 
+  123 0000006A         ; ldr r2, [sp, #12]; on charge le cos a l'indice kn
+  124 0000006A         ; push{r0}
+  125 0000006A         ; ldr r0, [sp, #4]
+  126 0000006A         ; mla r3, r3, r2, r0 ; 8.23
+  127 0000006A         ; pop{r0}
+  128 0000006A         ; str r3, [sp, #4] ;str la somme accumule
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+  129 0000006A         
+  130 0000006A         ; ldr r2, [sp, #0] ;indice
+  131 0000006A         ; add r2, #1 ;indice++
+  132 0000006A         ; str r2, [sp, #0] ;on replace l'indice dans la pile
+  133 0000006A         
+  134 0000006A         ; mov r3, #64 ; 64 = longueur du tableau
+  135 0000006A         ; cmp r3, r2 ;r2 index (rajout a la fin)
+  136 0000006A         ; bne Loop ;on boucle si on depasse pas l'indice
+  137 0000006A         ; 
+  138 0000006A         ; ldr r0, [sp, #4] ;on charge la somme accumule
+  139 0000006A         ; asr r0, #20 ; 8.3 
+  140 0000006A         ; mul r0,r0 ;16.6
+  141 0000006A         ; add sp, #16 ;on replace le pointeur de la pile au debu
+                       t
+  142 0000006A         ; bx lr
+  143 0000006A         ; endp
+  144 0000006A         
+  145 0000006A         ;Version 2
+  146 0000006A         
+  147 0000006A         ;DFT_ModuleAuCarre PROC; short int * Signal64ech, char k
+                       
+  148 0000006A         
+  149 0000006A         ; sub sp, #32
+  150 0000006A         ; mov r2, #0 ;r2 indice n
+  151 0000006A         ; str r2, [sp, #0] ; sp[0] = indice n
+  152 0000006A         ; mov r3, #0 
+  153 0000006A         ; str r3, [sp, #4] ; sp[2] = somme des partie réelle
+  154 0000006A         ; ldr r3,=TabCos
+  155 0000006A         ; str r3, [sp, #8]
+  156 0000006A         
+  157 0000006A         ; str r3, [sp, #20] ; sp[4] = somme des partie imaginair
+                       e
+  158 0000006A         ; ldr r3,=TabSin
+  159 0000006A         ; str r3, [sp, #24] ; sp[5] = TabSin
+  160 0000006A         ; 
+  161 0000006A         ; 
+  162 0000006A         ;Loop
+  163 0000006A         ;   
+  164 0000006A         ; ;Operation modulo
+  165 0000006A         ; ldr r2,[sp, #0] ; chargement indice n
+  166 0000006A         ; mul r2,r1,r2 ;r2 = k*n 
+  167 0000006A         ; and r2, #63 ;r2 = k*n AND LongueurTableau = k*n % Long
+                       ueurTableau
+  168 0000006A         
+  169 0000006A         ; ;Calcul cos  
+  170 0000006A         ; ldr r3, [sp, #8] ; on charge tabCos
+  171 0000006A         ; ldrsh r3, [r3,r2,lsl #1] ; r3 = cos à l'indice k*n = r
+                       2 ; r3 format 1.15
+  172 0000006A         ; asr r3, #2 ;1.13
+  173 0000006A         ; str r3, [sp, #12] ; sp[3] = cos à l'indice kn decale d
+                       e 2 vers la droite
+  174 0000006A         ;  
+  175 0000006A         ; ;Calcul sin 
+  176 0000006A         ; ldr r3, [sp, #24] ; on charge tabSin
+  177 0000006A         ; ldrsh r3, [r3,r2,lsl #1] ; r3 = sin à l'indice k*n = r
+                       2 ; r3 format 1.15
+  178 0000006A         ; asr r3, #2 ;1.13
+  179 0000006A         ; str r3, [sp, #28] ; sp[6] = sin à l'indice kn decale d
+                       e 2 vers la droite
+
+
+
+ARM Macro Assembler    Page 5 
+
+
+  180 0000006A         ; 
+  181 0000006A         ; ;Calcul partie reelle
+  182 0000006A         ; ldr r2,[sp, #0] ; chargement indice n
+  183 0000006A         ; ldrsh r3, [r0,r2,lsl #1] ; r3 = signal à l'indice n = 
+                       r2 1.12
+  184 0000006A         ; asr r3, #2 ;1.10 
+  185 0000006A         ; ldr r2, [sp, #12]; on charge le cos a l'indice kn
+  186 0000006A         ; push{r0}
+  187 0000006A         ; ldr r0, [sp, #4]
+  188 0000006A         ; mla r3, r3, r2, r0 ; 8.23
+  189 0000006A         ; pop{r0}
+  190 0000006A         ; str r3, [sp, #4] ;str la somme accumule
+  191 0000006A         
+  192 0000006A         ; ;Calcul partie imaginaire
+  193 0000006A         ; ldr r2,[sp, #0] ; chargement indice n
+  194 0000006A         ; ldrsh r3, [r0,r2,lsl #1] ; r3 = signal à l'indice n = 
+                       r2 1.12
+  195 0000006A         ; asr r3, #2 ;1.10 
+  196 0000006A         ; ldr r2, [sp, #28]; on charge le cos a l'indice kn
+  197 0000006A         ; push{r0}
+  198 0000006A         ; ldr r0, [sp, #20]
+  199 0000006A         ; mla r3, r3, r2, r0 ; 8.23
+  200 0000006A         ; pop{r0}
+  201 0000006A         ; str r3, [sp, #20] ;str la somme accumule
+  202 0000006A         
+  203 0000006A         ; ldr r2, [sp, #0] ;indice
+  204 0000006A         ; add r2, #1 ;indice++
+  205 0000006A         ; str r2, [sp, #0] ;on replace l'indice dans la pile
+  206 0000006A         
+  207 0000006A         ; mov r3, #64 ; 64 = longueur du tableau
+  208 0000006A         ; cmp r3, r2 ;r2 index (rajout a la fin)
+  209 0000006A         ; bne Loop ;on boucle si on depasse pas l'indice
+  210 0000006A         ; 
+  211 0000006A         ; ldr r0, [sp, #4] ;on charge la somme accumule
+  212 0000006A         ; asr r0, #20 ; 8.3 
+  213 0000006A         ; mul r0,r0 ;16.6
+  214 0000006A         ; 
+  215 0000006A         ; ldr r1, [sp, #20] ;on charge la somme accumule
+  216 0000006A         ; asr r1, #20 ; 8.3 
+  217 0000006A         ; mul r1,r1 ; 16.6
+  218 0000006A         ; 
+  219 0000006A         ; add r0, r1
+  220 0000006A         
+  221 0000006A         ; add sp, #32 ;on replace le pointeur de la pile au debu
+                       t
+  222 0000006A         ; bx lr
+  223 0000006A         ; endp
+  224 0000006A         
+  225 0000006A         ;DFT_ModuleAuCarre proc 
+  226 0000006A         ; ; r0 contient Sig
+  227 0000006A         ; ; r1 contient k
+  228 0000006A         ; 
+  229 0000006A         ; push {r4,r5,r6,r7}  
+  230 0000006A         ; 
+  231 0000006A         ; mov r3, #0x00 ;init i 
+  232 0000006A         ; mov r7, #0x00 ;init r7 à 0 pour utilisation future
+  233 0000006A         ; b loop 
+  234 0000006A         
+  235 0000006A         ;loop 
+
+
+
+ARM Macro Assembler    Page 6 
+
+
+  236 0000006A         ; ; on calcul i*k 
+  237 0000006A         ; mul r6, r1, r3
+  238 0000006A         ; and r6, #0x3F ;r5 contient i*k modulo 63 
+  239 0000006A         
+  240 0000006A         ; ;r4 cotient cos(i*k)
+  241 0000006A         ; ldr r2,=TabCos
+  242 0000006A         ; ldrsh r4, [r2, r6, lsl #0x01] 
+  243 0000006A         ; 
+  244 0000006A         ; ;r5 contient x(i) 
+  245 0000006A         ; ldrsh r5, [r0, r3, lsl #0x01]
+  246 0000006A         ; 
+  247 0000006A         ; ;r7 contient somme des x(i)*cos(i*k) 
+  248 0000006A         ; mla r7, r5, r4, r7 
+  249 0000006A         
+  250 0000006A         ; ;incrémente de 1 le compteur i 
+  251 0000006A         ; add r3, #0x01 
+  252 0000006A         
+  253 0000006A         ; ; comparaison de i à N=64
+  254 0000006A         ; cmp r3, #0x40
+  255 0000006A         ; bne loop 
+  256 0000006A         ; 
+  257 0000006A         ; asr r7,#20
+  258 0000006A         ; mul r7,r7
+  259 0000006A         ; mov r0,r7
+  260 0000006A         ; b fin 
+  261 0000006A         ;fin 
+  262 0000006A         
+  263 0000006A         ; pop {r4,r5,r6,r7}   
+  264 0000006A         ; bx lr 
+  265 0000006A         ; endp 
+  266 0000006A         
+  267 0000006A         
+  268 0000006A         ;Section ROM code (read only) :  
+  269 0000006A 00 00 00000000 
+              00000000         AREA             Trigo, DATA, READONLY
+  270 00000000         ; codage fractionnaire 1.15
+  271 00000000         
+  272 00000000         TabCos
+  273 00000000 FF 7F           DCW              32767       ;  0 0x7fff  0.9999
+                                                            7
+  274 00000002 62 7F           DCW              32610       ;  1 0x7f62  0.9951
+                                                            8
+  275 00000004 8A 7D           DCW              32138       ;  2 0x7d8a  0.9807
+                                                            7
+  276 00000006 7D 7A           DCW              31357       ;  3 0x7a7d  0.9569
+                                                            4
+  277 00000008 42 76           DCW              30274       ;  4 0x7642  0.9238
+                                                            9
+  278 0000000A E3 70           DCW              28899       ;  5 0x70e3  0.8819
+                                                            3
+  279 0000000C 6E 6A           DCW              27246       ;  6 0x6a6e  0.8314
+                                                            8
+  280 0000000E F2 62           DCW              25330       ;  7 0x62f2  0.7730
+                                                            1
+  281 00000010 82 5A           DCW              23170       ;  8 0x5a82  0.7070
+                                                            9
+  282 00000012 34 51           DCW              20788       ;  9 0x5134  0.6344
+                                                            0
+  283 00000014 1D 47           DCW              18205       ; 10 0x471d  0.5555
+
+
+
+ARM Macro Assembler    Page 7 
+
+
+                                                            7
+  284 00000016 57 3C           DCW              15447       ; 11 0x3c57  0.4714
+                                                            1
+  285 00000018 FC 30           DCW              12540       ; 12 0x30fc  0.3826
+                                                            9
+  286 0000001A 28 25           DCW              9512        ; 13 0x2528  0.2902
+                                                            8
+  287 0000001C F9 18           DCW              6393        ; 14 0x18f9  0.1951
+                                                            0
+  288 0000001E 8C 0C           DCW              3212        ; 15 0x0c8c  0.0980
+                                                            2
+  289 00000020 00 00           DCW              0           ; 16 0x0000  0.0000
+                                                            0
+  290 00000022 74 F3           DCW              -3212       ; 17 0xf374 -0.0980
+                                                            2
+  291 00000024 07 E7           DCW              -6393       ; 18 0xe707 -0.1951
+                                                            0
+  292 00000026 D8 DA           DCW              -9512       ; 19 0xdad8 -0.2902
+                                                            8
+  293 00000028 04 CF           DCW              -12540      ; 20 0xcf04 -0.3826
+                                                            9
+  294 0000002A A9 C3           DCW              -15447      ; 21 0xc3a9 -0.4714
+                                                            1
+  295 0000002C E3 B8           DCW              -18205      ; 22 0xb8e3 -0.5555
+                                                            7
+  296 0000002E CC AE           DCW              -20788      ; 23 0xaecc -0.6344
+                                                            0
+  297 00000030 7E A5           DCW              -23170      ; 24 0xa57e -0.7070
+                                                            9
+  298 00000032 0E 9D           DCW              -25330      ; 25 0x9d0e -0.7730
+                                                            1
+  299 00000034 92 95           DCW              -27246      ; 26 0x9592 -0.8314
+                                                            8
+  300 00000036 1D 8F           DCW              -28899      ; 27 0x8f1d -0.8819
+                                                            3
+  301 00000038 BE 89           DCW              -30274      ; 28 0x89be -0.9238
+                                                            9
+  302 0000003A 83 85           DCW              -31357      ; 29 0x8583 -0.9569
+                                                            4
+  303 0000003C 76 82           DCW              -32138      ; 30 0x8276 -0.9807
+                                                            7
+  304 0000003E 9E 80           DCW              -32610      ; 31 0x809e -0.9951
+                                                            8
+  305 00000040 00 80           DCW              -32768      ; 32 0x8000 -1.0000
+                                                            0
+  306 00000042 9E 80           DCW              -32610      ; 33 0x809e -0.9951
+                                                            8
+  307 00000044 76 82           DCW              -32138      ; 34 0x8276 -0.9807
+                                                            7
+  308 00000046 83 85           DCW              -31357      ; 35 0x8583 -0.9569
+                                                            4
+  309 00000048 BE 89           DCW              -30274      ; 36 0x89be -0.9238
+                                                            9
+  310 0000004A 1D 8F           DCW              -28899      ; 37 0x8f1d -0.8819
+                                                            3
+  311 0000004C 92 95           DCW              -27246      ; 38 0x9592 -0.8314
+                                                            8
+  312 0000004E 0E 9D           DCW              -25330      ; 39 0x9d0e -0.7730
+                                                            1
+
+
+
+ARM Macro Assembler    Page 8 
+
+
+  313 00000050 7E A5           DCW              -23170      ; 40 0xa57e -0.7070
+                                                            9
+  314 00000052 CC AE           DCW              -20788      ; 41 0xaecc -0.6344
+                                                            0
+  315 00000054 E3 B8           DCW              -18205      ; 42 0xb8e3 -0.5555
+                                                            7
+  316 00000056 A9 C3           DCW              -15447      ; 43 0xc3a9 -0.4714
+                                                            1
+  317 00000058 04 CF           DCW              -12540      ; 44 0xcf04 -0.3826
+                                                            9
+  318 0000005A D8 DA           DCW              -9512       ; 45 0xdad8 -0.2902
+                                                            8
+  319 0000005C 07 E7           DCW              -6393       ; 46 0xe707 -0.1951
+                                                            0
+  320 0000005E 74 F3           DCW              -3212       ; 47 0xf374 -0.0980
+                                                            2
+  321 00000060 00 00           DCW              0           ; 48 0x0000  0.0000
+                                                            0
+  322 00000062 8C 0C           DCW              3212        ; 49 0x0c8c  0.0980
+                                                            2
+  323 00000064 F9 18           DCW              6393        ; 50 0x18f9  0.1951
+                                                            0
+  324 00000066 28 25           DCW              9512        ; 51 0x2528  0.2902
+                                                            8
+  325 00000068 FC 30           DCW              12540       ; 52 0x30fc  0.3826
+                                                            9
+  326 0000006A 57 3C           DCW              15447       ; 53 0x3c57  0.4714
+                                                            1
+  327 0000006C 1D 47           DCW              18205       ; 54 0x471d  0.5555
+                                                            7
+  328 0000006E 34 51           DCW              20788       ; 55 0x5134  0.6344
+                                                            0
+  329 00000070 82 5A           DCW              23170       ; 56 0x5a82  0.7070
+                                                            9
+  330 00000072 F2 62           DCW              25330       ; 57 0x62f2  0.7730
+                                                            1
+  331 00000074 6E 6A           DCW              27246       ; 58 0x6a6e  0.8314
+                                                            8
+  332 00000076 E3 70           DCW              28899       ; 59 0x70e3  0.8819
+                                                            3
+  333 00000078 42 76           DCW              30274       ; 60 0x7642  0.9238
+                                                            9
+  334 0000007A 7D 7A           DCW              31357       ; 61 0x7a7d  0.9569
+                                                            4
+  335 0000007C 8A 7D           DCW              32138       ; 62 0x7d8a  0.9807
+                                                            7
+  336 0000007E 62 7F           DCW              32610       ; 63 0x7f62  0.9951
+                                                            8
+  337 00000080         TabSin
+  338 00000080 00 00           DCW              0           ;  0 0x0000  0.0000
+                                                            0
+  339 00000082 8C 0C           DCW              3212        ;  1 0x0c8c  0.0980
+                                                            2
+  340 00000084 F9 18           DCW              6393        ;  2 0x18f9  0.1951
+                                                            0
+  341 00000086 28 25           DCW              9512        ;  3 0x2528  0.2902
+                                                            8
+  342 00000088 FC 30           DCW              12540       ;  4 0x30fc  0.3826
+                                                            9
+
+
+
+ARM Macro Assembler    Page 9 
+
+
+  343 0000008A 57 3C           DCW              15447       ;  5 0x3c57  0.4714
+                                                            1
+  344 0000008C 1D 47           DCW              18205       ;  6 0x471d  0.5555
+                                                            7
+  345 0000008E 34 51           DCW              20788       ;  7 0x5134  0.6344
+                                                            0
+  346 00000090 82 5A           DCW              23170       ;  8 0x5a82  0.7070
+                                                            9
+  347 00000092 F2 62           DCW              25330       ;  9 0x62f2  0.7730
+                                                            1
+  348 00000094 6E 6A           DCW              27246       ; 10 0x6a6e  0.8314
+                                                            8
+  349 00000096 E3 70           DCW              28899       ; 11 0x70e3  0.8819
+                                                            3
+  350 00000098 42 76           DCW              30274       ; 12 0x7642  0.9238
+                                                            9
+  351 0000009A 7D 7A           DCW              31357       ; 13 0x7a7d  0.9569
+                                                            4
+  352 0000009C 8A 7D           DCW              32138       ; 14 0x7d8a  0.9807
+                                                            7
+  353 0000009E 62 7F           DCW              32610       ; 15 0x7f62  0.9951
+                                                            8
+  354 000000A0 FF 7F           DCW              32767       ; 16 0x7fff  0.9999
+                                                            7
+  355 000000A2 62 7F           DCW              32610       ; 17 0x7f62  0.9951
+                                                            8
+  356 000000A4 8A 7D           DCW              32138       ; 18 0x7d8a  0.9807
+                                                            7
+  357 000000A6 7D 7A           DCW              31357       ; 19 0x7a7d  0.9569
+                                                            4
+  358 000000A8 42 76           DCW              30274       ; 20 0x7642  0.9238
+                                                            9
+  359 000000AA E3 70           DCW              28899       ; 21 0x70e3  0.8819
+                                                            3
+  360 000000AC 6E 6A           DCW              27246       ; 22 0x6a6e  0.8314
+                                                            8
+  361 000000AE F2 62           DCW              25330       ; 23 0x62f2  0.7730
+                                                            1
+  362 000000B0 82 5A           DCW              23170       ; 24 0x5a82  0.7070
+                                                            9
+  363 000000B2 34 51           DCW              20788       ; 25 0x5134  0.6344
+                                                            0
+  364 000000B4 1D 47           DCW              18205       ; 26 0x471d  0.5555
+                                                            7
+  365 000000B6 57 3C           DCW              15447       ; 27 0x3c57  0.4714
+                                                            1
+  366 000000B8 FC 30           DCW              12540       ; 28 0x30fc  0.3826
+                                                            9
+  367 000000BA 28 25           DCW              9512        ; 29 0x2528  0.2902
+                                                            8
+  368 000000BC F9 18           DCW              6393        ; 30 0x18f9  0.1951
+                                                            0
+  369 000000BE 8C 0C           DCW              3212        ; 31 0x0c8c  0.0980
+                                                            2
+  370 000000C0 00 00           DCW              0           ; 32 0x0000  0.0000
+                                                            0
+  371 000000C2 74 F3           DCW              -3212       ; 33 0xf374 -0.0980
+                                                            2
+  372 000000C4 07 E7           DCW              -6393       ; 34 0xe707 -0.1951
+
+
+
+ARM Macro Assembler    Page 10 
+
+
+                                                            0
+  373 000000C6 D8 DA           DCW              -9512       ; 35 0xdad8 -0.2902
+                                                            8
+  374 000000C8 04 CF           DCW              -12540      ; 36 0xcf04 -0.3826
+                                                            9
+  375 000000CA A9 C3           DCW              -15447      ; 37 0xc3a9 -0.4714
+                                                            1
+  376 000000CC E3 B8           DCW              -18205      ; 38 0xb8e3 -0.5555
+                                                            7
+  377 000000CE CC AE           DCW              -20788      ; 39 0xaecc -0.6344
+                                                            0
+  378 000000D0 7E A5           DCW              -23170      ; 40 0xa57e -0.7070
+                                                            9
+  379 000000D2 0E 9D           DCW              -25330      ; 41 0x9d0e -0.7730
+                                                            1
+  380 000000D4 92 95           DCW              -27246      ; 42 0x9592 -0.8314
+                                                            8
+  381 000000D6 1D 8F           DCW              -28899      ; 43 0x8f1d -0.8819
+                                                            3
+  382 000000D8 BE 89           DCW              -30274      ; 44 0x89be -0.9238
+                                                            9
+  383 000000DA 83 85           DCW              -31357      ; 45 0x8583 -0.9569
+                                                            4
+  384 000000DC 76 82           DCW              -32138      ; 46 0x8276 -0.9807
+                                                            7
+  385 000000DE 9E 80           DCW              -32610      ; 47 0x809e -0.9951
+                                                            8
+  386 000000E0 00 80           DCW              -32768      ; 48 0x8000 -1.0000
+                                                            0
+  387 000000E2 9E 80           DCW              -32610      ; 49 0x809e -0.9951
+                                                            8
+  388 000000E4 76 82           DCW              -32138      ; 50 0x8276 -0.9807
+                                                            7
+  389 000000E6 83 85           DCW              -31357      ; 51 0x8583 -0.9569
+                                                            4
+  390 000000E8 BE 89           DCW              -30274      ; 52 0x89be -0.9238
+                                                            9
+  391 000000EA 1D 8F           DCW              -28899      ; 53 0x8f1d -0.8819
+                                                            3
+  392 000000EC 92 95           DCW              -27246      ; 54 0x9592 -0.8314
+                                                            8
+  393 000000EE 0E 9D           DCW              -25330      ; 55 0x9d0e -0.7730
+                                                            1
+  394 000000F0 7E A5           DCW              -23170      ; 56 0xa57e -0.7070
+                                                            9
+  395 000000F2 CC AE           DCW              -20788      ; 57 0xaecc -0.6344
+                                                            0
+  396 000000F4 E3 B8           DCW              -18205      ; 58 0xb8e3 -0.5555
+                                                            7
+  397 000000F6 A9 C3           DCW              -15447      ; 59 0xc3a9 -0.4714
+                                                            1
+  398 000000F8 04 CF           DCW              -12540      ; 60 0xcf04 -0.3826
+                                                            9
+  399 000000FA D8 DA           DCW              -9512       ; 61 0xdad8 -0.2902
+                                                            8
+  400 000000FC 07 E7           DCW              -6393       ; 62 0xe707 -0.1951
+                                                            0
+  401 000000FE 74 F3           DCW              -3212       ; 63 0xf374 -0.0980
+                                                            2
+
+
+
+ARM Macro Assembler    Page 11 
+
+
+  402 00000100         
+  403 00000100         
+  404 00000100         
+  405 00000100         
+  406 00000100                 END
+Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M3 --apcs=interw
+ork --depend=.\obj\dft.d -o.\obj\dft.o -I.\RTE\_Simu -IC:\Programdata\Keil\Arm\
+Packs\ARM\CMSIS\5.7.0\CMSIS\Core\Include -IC:\Programdata\Keil\Arm\Packs\Keil\S
+TM32F1xx_DFP\2.3.0\Device\Include --predefine="__EVAL SETA 1" --predefine="__MI
+CROLIB SETA 1" --predefine="__UVISION_VERSION SETA 530" --predefine="_RTE_ SETA
+ 1" --predefine="STM32F10X_MD SETA 1" --predefine="_RTE_ SETA 1" --list=dft.lst
+ Src\DFT.s
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+DFT_ModuleAuCarre 00000000
+
+Symbol: DFT_ModuleAuCarre
+   Definitions
+      At line 48 in file Src\DFT.s
+   Uses
+      At line 3 in file Src\DFT.s
+Comment: DFT_ModuleAuCarre used once
+Loop 00000010
+
+Symbol: Loop
+   Definitions
+      At line 56 in file Src\DFT.s
+   Uses
+      At line 84 in file Src\DFT.s
+Comment: Loop used once
+moncode 00000000
+
+Symbol: moncode
+   Definitions
+      At line 10 in file Src\DFT.s
+   Uses
+      None
+Comment: moncode unused
+3 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+TabCos 00000000
+
+Symbol: TabCos
+   Definitions
+      At line 272 in file Src\DFT.s
+   Uses
+      At line 4 in file Src\DFT.s
+      At line 64 in file Src\DFT.s
+
+TabSin 00000080
+
+Symbol: TabSin
+   Definitions
+      At line 337 in file Src\DFT.s
+   Uses
+      At line 5 in file Src\DFT.s
+      At line 73 in file Src\DFT.s
+
+Trigo 00000000
+
+Symbol: Trigo
+   Definitions
+      At line 269 in file Src\DFT.s
+   Uses
+      None
+Comment: Trigo unused
+3 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+External symbols
+
+LeSignal 00000000
+
+Symbol: LeSignal
+   Definitions
+      At line 6 in file Src\DFT.s
+   Uses
+      None
+Comment: LeSignal unused
+1 symbol
+344 symbols in table
